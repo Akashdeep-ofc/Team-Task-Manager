@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey, DateTime
+from sqlalchemy import String, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
 from typing import List, Optional
@@ -26,6 +26,10 @@ class User(Base):
 
 class Project(Base):
     __tablename__ = "projects"
+
+    __table_args__ = (
+        UniqueConstraint("created_by", "name", name="uix_user_project_name"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String)
@@ -75,7 +79,7 @@ class Task(Base):
     status: Mapped[str] = mapped_column(String, default="To Do")
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
-    assigned_to: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    assigned_to: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), default=None)
     # created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
