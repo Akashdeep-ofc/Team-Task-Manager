@@ -1,10 +1,12 @@
 from sqlalchemy.orm import Session
-from app.models.user import User
-from app.schemas.user import UserCreate
-from app.core.security import hash_password, verify_password
+from sqlalchemy import func
+from backend.app.models.models import User
+from backend.app.schemas.user import UserCreate
+from backend.app.core.security import hash_password, verify_password
+
 
 def create_user(db: Session, user_data: UserCreate):
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    existing_user = db.query(User).filter(func.lower(User.email) == user_data.email.lower).first()
     if existing_user:
         raise ValueError("Email already registered")
 
