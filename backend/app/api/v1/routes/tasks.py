@@ -14,6 +14,8 @@ router = APIRouter(prefix="/{project_id}/task")
 
 
 
+
+
 @router.post("", response_model=TaskOut)
 def create_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, task_details:TaskBase, project_id:int):
 
@@ -42,13 +44,10 @@ def create_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, task_
 
 
 
+
+
 @router.post("/{task_id}")
 def assign_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, project_id:int, task_id:int, member_email:Annotated[EmailStr,Body(embed=True)]):
-    print("------------------------------------------------------------------------------------------")
-    print("------------------------------------------------------------------------------------------")
-    print("Withing the assign task function")
-    print("------------------------------------------------------------------------------------------")
-    print("------------------------------------------------------------------------------------------")
 
     # check if project exists and admin making changes
     project_found = db.execute(
@@ -110,3 +109,106 @@ def assign_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, proje
     return {"message": "Task Assigned Successfully"}
 
     
+
+
+
+
+
+# Get all tasks for a project
+@router.get("", response_model=list[TaskOut])
+def get_tasks(db: Annotated[Session, Depends(get_db)], user: CurrentUser, project_id: int):
+    project = db.execute(
+        select(Project).where(Project.id == project_id)
+    ).scalars().first()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project Not Found")
+
+    # check if user is admin or member of project
+    membership = db.execute(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user.id
+        )
+    ).scalars().first()
+
+
+    if not membership:
+        raise HTTPException(status_code=403, detail="You Are Not Part Of This Project")
+    
+    if membership.role=="member":
+        tasks = db.execute(
+            select(Task).where(
+                Task.project_id == project_id,
+                Task.assigned_to==user.id
+            )
+        ).scalars().all()
+        return tasks
+
+
+    tasks = db.execute(
+        select(Task).where(Task.project_id == project_id)
+    ).scalars().all()
+    return tasks
+
+
+
+
+# Update task status — members can do this for their own tasks
+@router.patch("/{task_id}", response_model=TaskOut)
+def update_task_status(db: Annotated[Session, Depends(get_db)], user: CurrentUser, 
+                       project_id: int, task_id: int, new_status: str):
+    project = db.execute(select(Project).where(Project.id == project_id)).scalars().first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project Does Not Exist")
+
+    task = db.execute(
+        select(Task).where(Task.id == task_id, Task.project_id == project_id)
+    ).scalars().first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task Not Found")
+
+    # Admin can update any task, member can only update their own
+
+    is_admin = project.created_by == user.id
+    is_assigned = task.assigned_to == user.id
+
+    if not is_admin and not is_assigned:
+        raise HTTPException(status_code=403, detail="Not Authorized")
+
+    if new_status not in ["To Do", "In Progress", "Done"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    task.status = new_status
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+
+
+
+# Delete task — admin only
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(db: Annotated[Session, Depends(get_db)], user: CurrentUser, 
+                project_id: int, task_id: int):
+    project = db.execute(
+        select(Project).where(Project.id == project_id)
+    ).scalars().first()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project Not Found")
+
+    if project.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not Authorized")
+
+    task = db.execute(
+        select(Task).where(Task.id == task_id, Task.project_id == project_id)
+    ).scalars().first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task Not Found")
+
+    db.delete(task)
+    db.commit()
