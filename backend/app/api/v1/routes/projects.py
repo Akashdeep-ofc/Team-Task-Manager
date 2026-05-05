@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from typing import Annotated
 from backend.app.db.session import get_db
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select
+from sqlalchemy import func, select, delete
 from pydantic import EmailStr
 
 from backend.app.models.models import User, Project, ProjectMember, Task
@@ -100,3 +100,47 @@ def add_member(db: Annotated[Session, Depends(get_db)], user:CurrentUser, projec
 
 
 
+
+# Get all projects for current user
+@router.get("", response_model=list[ProjectOut])
+def get_projects(db: Annotated[Session, Depends(get_db)], user: CurrentUser):
+    projects = db.execute(
+        select(Project).where(Project.created_by == user.id)
+    ).scalars().all()
+    return projects
+
+
+# Get single project
+@router.get("/{project_id}", response_model=ProjectOut)
+def get_project(db: Annotated[Session, Depends(get_db)], user: CurrentUser, project_id: int):
+    project = db.execute(
+        select(Project).where(Project.id == project_id)
+    ).scalars().first()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project Not Found")
+
+    if project.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not Authorized")
+
+    return project
+
+
+# Delete project
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(db: Annotated[Session, Depends(get_db)], user: CurrentUser, project_id: int):
+    project = db.execute(
+        select(Project).where(Project.id == project_id)
+    ).scalars().first()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project Not Found")
+
+    if project.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not Authorized")
+
+    # Manual cleanup since no cascades
+    db.execute(delete(Task).where(Task.project_id == project_id))
+    db.execute(delete(ProjectMember).where(ProjectMember.project_id == project_id))
+    db.delete(project)
+    db.commit()
