@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
@@ -110,9 +110,9 @@ def create_project(db: Annotated[Session, Depends(get_db)], user:CurrentUser, pr
         )).scalars().first()
     
     if existing:
-        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="Project with this name already exists")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Project with this name already exists")
     
-    project = Project(name=project_details.name, created_by=user.username)
+    project = Project(name=project_details.name, created_by=user.id)
     
     db.add(project)
     db.flush()
@@ -150,7 +150,6 @@ def create_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, task_
     task = Task(**task_details.model_dump(exclude_none=True),
                 project_id=project_id)
     
-
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -160,7 +159,7 @@ def create_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, task_
 
 
 @router.post("/project/{project_id}/task/{task_id}")
-def assign_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, project_id:int, task_id:int, member_email:EmailStr):
+def assign_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, project_id:int, task_id:int, member_email:Annotated[EmailStr,Body(embed=True)]):
     
     # check if project exists and admin making changes
     project_found = db.execute(
@@ -173,7 +172,7 @@ def assign_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, proje
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project Not Found")
     
     if not (project_found.created_by==user.id):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not Admin")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not Admin")
     
     # checking task exists
     task_found = db.execute(
@@ -201,11 +200,13 @@ def assign_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, proje
     if member.id==user.id:
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="Member cannot be the Admin")
     
-    member_exists = False
-    for each in project_found.members:
-        if each.user_id==member.id:
-            member_exists=True
-    
+    member_exists = db.execute(
+    select(ProjectMember).where(
+        ProjectMember.project_id == project_id,
+        ProjectMember.user_id == member.id
+    )
+    ).scalars().first()
+
     if not member_exists:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member Is NOT Part Of This Project")
 
@@ -215,11 +216,13 @@ def assign_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, proje
     db.commit()
     db.refresh(task_found)
         
-    return {"message":"Task Assigned Successfully", "Task_details":task_found}
+    # return {"message":"Task Assigned Successfully", "Task_details":task_found}
+    return {"message": "Task Assigned Successfully"}
+
     
 
 @router.post("/project/{project_id}/add")
-def add_member(db: Annotated[Session, Depends(get_db)], user:CurrentUser, project_id:int, member_email:EmailStr):
+def add_member(db: Annotated[Session, Depends(get_db)], user:CurrentUser, project_id:int, member_email:Annotated[EmailStr,Body(embed=True)]):
 
     # check if project exists and admin making changes
     project_found = db.execute(
@@ -232,7 +235,7 @@ def add_member(db: Annotated[Session, Depends(get_db)], user:CurrentUser, projec
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project Not Found")
     
     if not (project_found.created_by==user.id):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not Admin")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not Admin")
     
     member = db.execute(
         select(User).where(
@@ -246,10 +249,23 @@ def add_member(db: Annotated[Session, Depends(get_db)], user:CurrentUser, projec
     if member.id==user.id:
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="Member cannot be the Admin")
     
+
+    already_member = db.execute(
+    select(ProjectMember).where(
+        ProjectMember.project_id == project_id,
+        ProjectMember.user_id == member.id
+        )
+    ).scalars().first()
+
+    if already_member:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Member already in project")
+
+
     member_record = ProjectMember(project_id=project_id,
                   user_id=member.id,)
     
     db.add(member_record)
     db.commit()
     db.refresh(member_record)
-    return {"message":"Member Added Successfully", "Member_details":member_record}
+    # return {"message":"Member Added Successfully", "Member_details":member_record}
+    return {"message":"Member Added Successfully"}
