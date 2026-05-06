@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from pydantic import EmailStr
 from backend.app.models.models import User, Project, ProjectMember, Task
+from backend.app.api.v1.routes.dashboard import filter_tasks
 
 from backend.app.schemas.task import TaskOut, TaskBase
 from backend.app.core.security import CurrentUser
@@ -115,8 +116,15 @@ def assign_task(db: Annotated[Session, Depends(get_db)], user:CurrentUser, proje
 
 
 # Get all tasks for a project
-@router.get("", response_model=list[TaskOut])
-def get_tasks(db: Annotated[Session, Depends(get_db)], user: CurrentUser, project_id: int):
+@router.get("") #response model has been removed here, will check this later from docs how to fix
+def get_tasks(db: Annotated[Session, Depends(get_db)], user: CurrentUser, project_id: int,
+              task_status:bool=False, overdue:bool=False, per_user:bool=False):
+
+    if(sum([task_status,overdue,per_user]))==1:
+        return filter_tasks(db=db, user=user, project_id=project_id, task_status=task_status, overdue=overdue, per_user=per_user)
+
+
+
     project = db.execute(
         select(Project).where(Project.id == project_id)
     ).scalars().first()
@@ -132,10 +140,10 @@ def get_tasks(db: Annotated[Session, Depends(get_db)], user: CurrentUser, projec
         )
     ).scalars().first()
 
-
     if not membership:
         raise HTTPException(status_code=403, detail="You Are Not Part Of This Project")
     
+
     if membership.role=="member":
         tasks = db.execute(
             select(Task).where(
@@ -144,7 +152,6 @@ def get_tasks(db: Annotated[Session, Depends(get_db)], user: CurrentUser, projec
             )
         ).scalars().all()
         return tasks
-
 
     tasks = db.execute(
         select(Task).where(Task.project_id == project_id)

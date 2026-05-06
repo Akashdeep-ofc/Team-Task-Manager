@@ -1,21 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from typing import Annotated
+from datetime import datetime, UTC
 from backend.app.db.session import get_db
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select, delete
+from sqlalchemy import func, select, delete, update
 from pydantic import EmailStr
 
 from backend.app.models.models import User, Project, ProjectMember, Task
-from backend.app.schemas.project import ProjectOut,ProjectBase
+from backend.app.schemas.project import ProjectOut,ProjectBase, ProjectMemberOut
 
 from backend.app.core.security import CurrentUser
 from backend.app.api.v1.routes.tasks import router as tasks_router
-
+from backend.app.api.v1.routes.dashboard import router as dashboard_router
 
 
 router = APIRouter(prefix="/project")
 
 router.include_router(router=tasks_router)
+router.include_router(router=dashboard_router)
 
 
 @router.post("", response_model=ProjectOut)
@@ -143,4 +145,73 @@ def delete_project(db: Annotated[Session, Depends(get_db)], user: CurrentUser, p
     db.execute(delete(Task).where(Task.project_id == project_id))
     db.execute(delete(ProjectMember).where(ProjectMember.project_id == project_id))
     db.delete(project)
+    db.commit()
+
+
+
+
+    # Get all members of a project
+@router.get("/{project_id}/members", response_model=ProjectMemberOut)
+def get_members(db: Annotated[Session, Depends(get_db)], user: CurrentUser, project_id: int):
+    project = db.execute(
+        select(Project).where(Project.id == project_id)
+    ).scalars().first()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project Not Found")
+
+    if project.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not Authorized")
+
+    members = db.execute(
+        select(ProjectMember).where(ProjectMember.project_id == project_id)
+    ).scalars().all()
+    return [
+        {
+            "user_id": m.user_id,
+            "username": m.user.username,
+            "email": m.user.email,
+            "role": m.role
+        }
+    for m in members
+    ]
+
+
+
+
+
+
+# Remove member — admin only
+@router.delete("/{project_id}/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_member(db: Annotated[Session, Depends(get_db)], user: CurrentUser, 
+                  project_id: int, member_id: int):
+    project = db.execute(
+        select(Project).where(Project.id == project_id)
+    ).scalars().first()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project Not Found")
+
+    if project.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not Authorized")
+
+    membership = db.execute(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == member_id
+        )
+    ).scalars().first()
+
+    if not membership:
+        raise HTTPException(status_code=404, detail="Member Not Found")
+
+    db.delete(membership)
+    db.execute(
+        update(Task).where(
+            Task.project_id == project_id,
+            Task.assigned_to == member_id
+        )
+        .values(assigned_to=None)
+    )
+
     db.commit()

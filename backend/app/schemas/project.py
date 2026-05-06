@@ -10,3 +10,12 @@ class ProjectOut(ProjectBase):
     id:int
     created_by:int
     created_at:datetime
+
+
+class ProjectMemberOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    user_id: int
+    username: str
+    email: str
+    role: str
