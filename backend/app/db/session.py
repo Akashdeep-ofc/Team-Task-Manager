@@ -1,0 +1,29 @@
+from sqlalchemy import create_engine, URL
+from sqlalchemy.orm import sessionmaker
+from backend.app.core.config import settings
+
+
+sql_connect = URL.create(
+    "postgresql+psycopg",
+    username=settings.username,
+    password=settings.password,
+    host=settings.host,
+    database=settings.database,
+    port=settings.port
+)
+
+
+
+engine = create_engine(sql_connect)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    except:
+        db.rollback()
+        raise
+    finally:
+        db.close()
