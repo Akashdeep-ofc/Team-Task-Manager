@@ -43,7 +43,7 @@ def get_dashboard(db: Annotated[Session, Depends(get_db)], user: CurrentUser, pr
             "Done": sum(1 for t in tasks if t.status == "Done"),
         },
         "tasks_per_user": {
-            t.assigned_to: sum(1 for task in tasks if task.assigned_to == t.assigned_to)
+            t.assignee.username: sum(1 for task in tasks if task.assigned_to == t.assigned_to)
             for t in tasks if t.assigned_to
         },
         "overdue_tasks": [
@@ -183,7 +183,7 @@ def get_tasks_per_user(db: Annotated[Session, Depends(get_db)], user: CurrentUse
     
     grouped_by_members = {}
     for task in tasks:
-        key =  task.assigned_to
+        key =  task.assignee.username
         if key not in grouped_by_members:
             grouped_by_members[key]=[]
         grouped_by_members[key].append(task)
