@@ -122,7 +122,14 @@ def get_project(db: Annotated[Session, Depends(get_db)], user: CurrentUser, proj
     if not project:
         raise HTTPException(status_code=404, detail="Project Not Found")
 
-    if project.created_by != user.id:
+    membership = db.execute(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user.id
+        )
+    ).scalars().first()
+
+    if not membership:
         raise HTTPException(status_code=403, detail="Not Authorized")
 
     return project
@@ -151,7 +158,7 @@ def delete_project(db: Annotated[Session, Depends(get_db)], user: CurrentUser, p
 
 
     # Get all members of a project
-@router.get("/{project_id}/members", response_model=ProjectMemberOut)
+@router.get("/{project_id}/members")
 def get_members(db: Annotated[Session, Depends(get_db)], user: CurrentUser, project_id: int):
     project = db.execute(
         select(Project).where(Project.id == project_id)

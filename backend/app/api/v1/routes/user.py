@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from pydantic import EmailStr
 from backend.app.models.models import User, Project, ProjectMember, Task
 from backend.app.schemas.user import UserCreate, UserOut, Token
+from backend.app.schemas.project import ProjectOut
 from backend.app.api.v1.routes.projects import router as projects_router
 
 
@@ -98,3 +99,18 @@ def login_for_access_token(
     return Token(access_token=access_token, token_type="bearer")
 
 
+
+
+@router.get("/member-projects", response_model=list[ProjectOut])
+def get_member_projects(db: Annotated[Session, Depends(get_db)], user: CurrentUser):
+    memberships = db.execute(
+        select(ProjectMember).where(
+            ProjectMember.user_id == user.id,
+            ProjectMember.role == "member"  # exclude projects where they are admin
+        )
+    ).scalars().all()
+
+
+    projects = [member.project for member in memberships]
+
+    return projects
