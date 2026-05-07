@@ -178,7 +178,8 @@ def get_tasks_per_user(db: Annotated[Session, Depends(get_db)], user: CurrentUse
 
     tasks = db.execute(
         select(Task).where(
-            Task.project_id == project_id
+            Task.project_id == project_id,
+            Task.assigned_to.is_not(None)
         )
         .order_by(Task.assigned_to)
     ).scalars().all()
