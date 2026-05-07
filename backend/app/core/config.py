@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     port:int
 
     database_url:str
+    frontend_url:str
 
 
 settings = Settings() #type:ignore
