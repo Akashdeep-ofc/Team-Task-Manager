@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.db.init_db import init_db
 from app.api.v1.routes.user import router
+from app.core.config import settings
 
 
 
@@ -18,13 +19,20 @@ async def lifespan(app: FastAPI):
     # shutdown logic (in future)
 
 
+
+FRONTEND_URL = settings.frontend_url
+# print(FRONTEND_URL)
+
+
+
 app = FastAPI(lifespan=lifespan)
-app.include_router(router=router, prefix="/user")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or ["http://localhost:5173"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(router=router, prefix="/user")
+
