@@ -1,14 +1,14 @@
 from datetime import UTC, datetime, timedelta
 import jwt
 from pwdlib import PasswordHash
-from backend.app.core.config import settings
+from app.core.config import settings
 
 
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status
-from backend.app.models.models import User
-from backend.app.schemas.user import UserOut
-from backend.app.db.session import get_db
+from app.models.models import User
+from app.schemas.user import UserOut
+from app.db.session import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from typing import Annotated
