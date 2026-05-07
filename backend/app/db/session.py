@@ -14,8 +14,13 @@ sql_connect = URL.create(
 )
 
 
-
 engine = create_engine(sql_connect)
+
+
+if settings.database_url:
+    DATABASE_URL = settings.database_url
+    engine = create_engine(url=DATABASE_URL)
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
