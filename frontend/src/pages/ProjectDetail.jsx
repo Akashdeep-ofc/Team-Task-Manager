@@ -435,9 +435,13 @@ export default function ProjectDetail() {
 
           {/* Per User — admin only */}
           <div style={{ display: filter === 'per_user' && isAdmin ? 'block' : 'none', minHeight: '400px' }}>
-            {Object.entries(perUserTasks).map(([userId, tasks]) => (
-              <div key={userId} style={{ marginBottom: '1.5rem' }}>
-                <div className="section-title">User #{userId}</div>
+            {Object.entries(perUserTasks).map(([username, tasks]) => (
+              <div key={username} style={{ marginBottom: '1.5rem' }}>
+                <div className="section-title">
+                  <span style={{ fontWeight: 600 }}>
+                    👤 {username}
+                  </span>
+                </div>
                 {tasks.map((task) => (
                   <TaskCard key={task.id} task={task} isAdmin={isAdmin}
                     onStatusChange={handleStatusChange}
