@@ -1,7 +1,11 @@
 // ⚠️ Change this to match your backend URL
 // In development: http://localhost:8000
 // After deployment: your Railway backend URL
-const BASE_URL = 'http://localhost:8000'
+// const BASE_URL = process.env.BASE_URL
+// const BASE_URL = 'http://localhost:8000'
+const BASE_URL = import.meta.env.VITE_BASE_URL
+// const BASE_URL = process.env.VITE_BASE_URL
+
 
 // ⚠️ Change this prefix to match how you included the router in your main.py
 // If your main.py does: app.include_router(router, prefix="/users") → use "/users"
