@@ -177,7 +177,9 @@ def get_tasks_per_user(db: Annotated[Session, Depends(get_db)], user: CurrentUse
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only allowed")
 
     tasks = db.execute(
-        select(Task).where(Task.project_id == project_id)
+        select(Task).where(
+            Task.project_id == project_id
+        )
         .order_by(Task.assigned_to)
     ).scalars().all()
     
