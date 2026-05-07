@@ -19,6 +19,7 @@ engine = create_engine(sql_connect)
 
 if settings.database_url:
     DATABASE_URL = settings.database_url
+    DATABASE_URL =DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
     engine = create_engine(url=DATABASE_URL)
 
 
