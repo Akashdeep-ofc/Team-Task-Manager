@@ -9,7 +9,11 @@ from backend.app.api.v1.routes.user import router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup logic
-    init_db()
+    try:
+        init_db()
+        print("✅ DB connected")
+    except Exception as e:
+        print("❌ DB connection failed:", e)
     yield
     # shutdown logic (in future)
 
