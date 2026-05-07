@@ -65,6 +65,25 @@ export default function Signup() {
               placeholder="••••••••"
               required
             />
+          <small
+            style={{
+              color: '#6b7280',
+              display: 'block',
+              marginTop: '0.4rem',
+              fontSize: '0.82rem'
+            }}
+          >
+            Password must contain:
+            <br />
+            • 8+ characters
+            <br />
+            • uppercase letter
+            <br />
+            • lowercase letter
+            <br />
+            • number
+          </small>
+
           </div>
           <button className="btn btn-primary" type="submit" disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
