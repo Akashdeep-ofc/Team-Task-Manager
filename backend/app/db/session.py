@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import sessionmaker
-from backend.app.core.config import settings
+from app.core.config import settings
 
 
 

@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from typing import Annotated
-from backend.app.db.session import get_db
+from app.db.session import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from pydantic import EmailStr
-from backend.app.models.models import User, Project, ProjectMember, Task
-from backend.app.api.v1.routes.dashboard import filter_tasks
+from app.models.models import User, Project, ProjectMember, Task
+from app.api.v1.routes.dashboard import filter_tasks
 
-from backend.app.schemas.task import TaskOut, TaskBase
-from backend.app.core.security import CurrentUser
+from app.schemas.task import TaskOut, TaskBase
+from app.core.security import CurrentUser
 
 
 router = APIRouter(prefix="/{project_id}/task")

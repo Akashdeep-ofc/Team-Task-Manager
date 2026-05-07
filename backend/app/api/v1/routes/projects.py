@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from typing import Annotated
 from datetime import datetime, UTC
-from backend.app.db.session import get_db
+from app.db.session import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, delete, update
 from pydantic import EmailStr
 
-from backend.app.models.models import User, Project, ProjectMember, Task
-from backend.app.schemas.project import ProjectOut,ProjectBase, ProjectMemberOut
+from app.models.models import User, Project, ProjectMember, Task
+from app.schemas.project import ProjectOut,ProjectBase, ProjectMemberOut
 
-from backend.app.core.security import CurrentUser
-from backend.app.api.v1.routes.tasks import router as tasks_router
-from backend.app.api.v1.routes.dashboard import router as dashboard_router
+from app.core.security import CurrentUser
+from app.api.v1.routes.tasks import router as tasks_router
+from app.api.v1.routes.dashboard import router as dashboard_router
 
 
 router = APIRouter(prefix="/project")

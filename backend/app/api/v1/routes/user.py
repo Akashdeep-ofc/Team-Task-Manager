@@ -2,24 +2,24 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
-from backend.app.db.session import get_db
+from app.db.session import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from pydantic import EmailStr
-from backend.app.models.models import User, Project, ProjectMember, Task
-from backend.app.schemas.user import UserCreate, UserOut, Token
-from backend.app.schemas.project import ProjectOut
-from backend.app.api.v1.routes.projects import router as projects_router
+from app.models.models import User, Project, ProjectMember, Task
+from app.schemas.user import UserCreate, UserOut, Token
+from app.schemas.project import ProjectOut
+from app.api.v1.routes.projects import router as projects_router
 
 
-from backend.app.core.security import (
+from app.core.security import (
     hash_password,
     oauth2_scheme,
     verify_access_token,
     verify_password,
     create_access_token,)
 
-from backend.app.core.security import CurrentUser
+from app.core.security import CurrentUser
 
 
 router = APIRouter()
