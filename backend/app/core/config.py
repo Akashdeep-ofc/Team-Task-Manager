@@ -18,5 +18,7 @@ class Settings(BaseSettings):
     database:str
     port:int
 
+    database_url:str
+
 
 settings = Settings() #type:ignore
