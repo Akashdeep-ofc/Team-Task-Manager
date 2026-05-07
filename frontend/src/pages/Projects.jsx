@@ -75,7 +75,7 @@ export default function Projects() {
           <div style={{ width: '180px' }}>
             <button
               className="btn btn-primary"
-              onClick={handleCreate}
+              onClick={() => setShowModal(true)}
               disabled={view !== 'admin'}
               style={{
                 width: '100%',
